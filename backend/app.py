@@ -157,7 +157,7 @@ def predict():
 
         return jsonify({
             "prediction": predicted_label.title(),
-            "confidence": confidence
+            "confidence": f"{confidence}%"
         })
 
     except Exception as e:
@@ -166,20 +166,6 @@ def predict():
         return jsonify({
             "error": str(e)
         }), 500
-
-
-# ---------------- SUBMIT REPORT ----------------
-@app.route("/submit-report", methods=["POST"])
-def submit_report():
-
-    data = request.get_json()
-
-    print("Report Received:", data)
-
-    return jsonify({
-        "success": True,
-        "message": "Report submitted successfully"
-    }), 200
 
 
 # ---------------- RUN ----------------

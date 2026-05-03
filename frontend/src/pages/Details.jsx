@@ -89,6 +89,7 @@ function Details() {
 
   const handleSubmit = async () => {
     try {
+
       await axios.post("https://urban-eye-srks.onrender.com/submit-report", {
         title,
         issue: formattedIssue,
@@ -111,6 +112,7 @@ function Details() {
       navigate("/track-report");
 
     } catch (error) {
+
       console.error(error);
 
       saveReportLocally();
@@ -129,7 +131,7 @@ function Details() {
 
         <div className="flex items-center gap-6">
 
-          {/* STEP */}
+          {/* Upload */}
           <div className="flex flex-col items-center">
             <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center text-white">
               <Check size={20} />
@@ -139,6 +141,7 @@ function Details() {
 
           <div className="w-24 h-[2px] bg-green-400"></div>
 
+          {/* AI */}
           <div className="flex flex-col items-center">
             <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center text-white">
               <Check size={20} />
@@ -148,6 +151,7 @@ function Details() {
 
           <div className="w-24 h-[2px] bg-green-400"></div>
 
+          {/* Location */}
           <div className="flex flex-col items-center">
             <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center text-white">
               <Check size={20} />
@@ -157,6 +161,7 @@ function Details() {
 
           <div className="w-24 h-[2px] bg-green-400"></div>
 
+          {/* Details */}
           <div className="flex flex-col items-center">
             <div className="w-12 h-12 bg-[#0f172a] rounded-xl flex items-center justify-center text-white">
               <FileText size={20} />
@@ -181,7 +186,7 @@ function Details() {
             Add any additional information (optional)
           </p>
 
-          {/* TITLE */}
+          {/* Title */}
           <div className="mb-6">
 
             <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -196,7 +201,7 @@ function Details() {
 
           </div>
 
-          {/* DESCRIPTION */}
+          {/* Description */}
           <div className="mb-8">
 
             <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -212,7 +217,7 @@ function Details() {
 
           </div>
 
-          {/* SUMMARY */}
+          {/* Summary */}
           <div className="bg-[#f8fafc] border border-gray-200 rounded-2xl p-6 mb-8">
 
             <h3 className="font-semibold text-lg mb-6">
@@ -277,7 +282,7 @@ function Details() {
 
           </div>
 
-          {/* BUTTONS */}
+          {/* Buttons */}
           <div className="flex justify-between items-center border-t pt-6">
 
             <button

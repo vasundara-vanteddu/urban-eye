@@ -105,12 +105,11 @@ def authority_login():
     }), 401
 
 
-# ---------------- CITIZEN OTP ----------------
+# ---------------- OTP ----------------
 @app.route("/send-otp", methods=["POST"])
 def send_otp():
 
     data = request.get_json()
-
     phone = data.get("phone")
 
     if not phone:
@@ -121,20 +120,19 @@ def send_otp():
 
     otp = random.randint(1000, 9999)
 
-    print(f"\nOTP for {phone}: {otp}\n")
+    print(f"OTP for {phone}: {otp}")
 
     return jsonify({
         "success": True,
         "message": "OTP Sent Successfully",
         "otp": otp
-    }), 200
+    })
 
 
-# ---------------- PREDICT ROUTE ----------------
+# ---------------- PREDICT ----------------
 @app.route("/predict", methods=["POST"])
 def predict():
 
-    # LOAD MODELS ONLY WHEN REQUEST COMES
     load_models()
 
     if "file" not in request.files:
@@ -144,14 +142,8 @@ def predict():
 
     file = request.files["file"]
 
-    if file.filename == "":
-        return jsonify({
-            "error": "No selected file"
-        }), 400
-
     try:
 
-        # READ IMAGE
         file_bytes = np.frombuffer(file.read(), np.uint8)
         img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
@@ -160,28 +152,25 @@ def predict():
                 "error": "Invalid image"
             }), 400
 
-        # RESIZE
         img = cv2.resize(img, (224, 224))
 
-        # PREPROCESS
         img = np.expand_dims(img, axis=0)
         img = preprocess_input(img)
 
-        # FEATURE EXTRACTION
-        features = feature_extractor.predict(img)
+        # FIXED
+        features = feature_extractor.predict(img, verbose=0)
 
-        # PREDICT
         pred = model_xgb.predict(features)[0]
 
-        # CONFIDENCE
         probs = model_xgb.predict_proba(features)[0]
+
         confidence = round(float(np.max(probs)) * 100, 2)
 
         predicted_label = reverse_label_map[pred]
 
         return jsonify({
             "prediction": predicted_label.title(),
-            "confidence": f"{confidence}%"
+            "confidence": confidence
         })
 
     except Exception as e:
@@ -191,6 +180,20 @@ def predict():
         return jsonify({
             "error": str(e)
         }), 500
+
+
+# ---------------- SUBMIT REPORT ----------------
+@app.route("/submit-report", methods=["POST"])
+def submit_report():
+
+    data = request.get_json()
+
+    print("NEW REPORT:", data)
+
+    return jsonify({
+        "success": True,
+        "message": "Report Submitted Successfully"
+    })
 
 
 # ---------------- RUN ----------------

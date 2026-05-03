@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 // MAIN
 import Home from "./Home";
@@ -27,48 +28,54 @@ import ForgotPassword from "./pages/ForgotPassword";
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <GoogleOAuthProvider clientId="PASTE_YOUR_GOOGLE_CLIENT_ID_HERE">
 
-        {/* MAIN */}
-        <Route path="/" element={<Home />} />
-        <Route path="/portal" element={<Portal />} />
+      <BrowserRouter>
 
-        {/* CITIZEN FLOW */}
-        <Route path="/citizen-login" element={<CitizenLogin />} />
-        <Route path="/dashboard" element={<CitizenDashboard />} />
-        <Route path="/citizen-settings" element={<CitizenSettings />} />
-        <Route path="/citizen-complaint" element={<CitizenComplaint />} />
-        <Route path="/report" element={<ReportIssue />} />
-        <Route path="/ai-detection" element={<AiDetection />} />
-        <Route path="/location" element={<Location />} />
-        <Route path="/details" element={<Details />} />
-        <Route path="/track-report" element={<TrackReport />} />
+        <Routes>
 
-        {/* AUTHORITY FLOW */}
-        <Route path="/authority-login" element={<AuthorityLogin />} />
+          {/* MAIN */}
+          <Route path="/" element={<Home />} />
+          <Route path="/portal" element={<Portal />} />
 
-        <Route
-          path="/authority-dashboard"
-          element={<AuthorityDashboard />}
-        />
+          {/* CITIZEN FLOW */}
+          <Route path="/citizen-login" element={<CitizenLogin />} />
+          <Route path="/dashboard" element={<CitizenDashboard />} />
+          <Route path="/citizen-settings" element={<CitizenSettings />} />
+          <Route path="/citizen-complaint" element={<CitizenComplaint />} />
+          <Route path="/report" element={<ReportIssue />} />
+          <Route path="/ai-detection" element={<AiDetection />} />
+          <Route path="/location" element={<Location />} />
+          <Route path="/details" element={<Details />} />
+          <Route path="/track-report" element={<TrackReport />} />
 
-        <Route
-          path="/authority-settings"
-          element={<AuthoritySettings />}
-        />
+          {/* AUTHORITY FLOW */}
+          <Route path="/authority-login" element={<AuthorityLogin />} />
 
-        <Route
-          path="/authority-analytics"
-          element={<AuthorityAnalytics />}
-        />
+          <Route
+            path="/authority-dashboard"
+            element={<AuthorityDashboard />}
+          />
 
-        {/* COMMON */}
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route
+            path="/authority-settings"
+            element={<AuthoritySettings />}
+          />
 
-      </Routes>
-    </BrowserRouter>
+          <Route
+            path="/authority-analytics"
+            element={<AuthorityAnalytics />}
+          />
+
+          {/* COMMON */}
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+
+        </Routes>
+
+      </BrowserRouter>
+
+    </GoogleOAuthProvider>
   );
 }
 

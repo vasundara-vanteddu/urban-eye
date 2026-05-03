@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useState } from "react";
 import { detectPriority } from "../utils/priorityEngine";
+import { Check, FileText, ArrowLeft, Send } from "lucide-react";
 
 function Details() {
   const navigate = useNavigate();
@@ -12,11 +13,11 @@ function Details() {
   const uploadedImage = localStorage.getItem("uploadedImage");
 
   const [description, setDescription] = useState("");
+  const [title, setTitle] = useState(`${issue} issue`);
 
   const formattedIssue =
     issue.charAt(0).toUpperCase() + issue.slice(1);
 
-  // SMART PRIORITY NOW USES DESCRIPTION
   const priority = detectPriority(
     issue,
     location,
@@ -60,6 +61,7 @@ function Details() {
       JSON.parse(localStorage.getItem("citizenReports")) || [];
 
     const newReport = {
+      title,
       issueType: formattedIssue,
       confidence: confidence.toString().replace("%", ""),
       priority,
@@ -88,18 +90,21 @@ function Details() {
   const handleSubmit = async () => {
     try {
       await axios.post("http://127.0.0.1:5000/submit-report", {
+        title,
         issue: formattedIssue,
         confidence,
         priority,
         address: location,
+        description,
         lat: localStorage.getItem("lat"),
         lng: localStorage.getItem("lng"),
-        description,
       });
+
       localStorage.setItem("description", description);
       localStorage.setItem("priority", priority);
-      saveReportLocally();
+      localStorage.setItem("title", title);
 
+      saveReportLocally();
 
       alert("Report Submitted Successfully 🚀");
 
@@ -117,74 +122,139 @@ function Details() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-[#f4f6f8]">
 
-      <div className="flex justify-between px-10 py-4 bg-white shadow-sm">
+      {/* STEP PROGRESS */}
+      <div className="flex justify-center pt-10">
 
-        <button onClick={() => navigate(-1)}>
-          ← Back
-        </button>
+        <div className="flex items-center gap-6">
 
-        <h1 className="font-semibold">
-          Urban-Eye
-        </h1>
+          {/* STEP */}
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center text-white">
+              <Check size={20} />
+            </div>
+            <p className="text-sm mt-2">Upload</p>
+          </div>
+
+          <div className="w-24 h-[2px] bg-green-400"></div>
+
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center text-white">
+              <Check size={20} />
+            </div>
+            <p className="text-sm mt-2">AI Detection</p>
+          </div>
+
+          <div className="w-24 h-[2px] bg-green-400"></div>
+
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center text-white">
+              <Check size={20} />
+            </div>
+            <p className="text-sm mt-2">Location</p>
+          </div>
+
+          <div className="w-24 h-[2px] bg-green-400"></div>
+
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 bg-[#0f172a] rounded-xl flex items-center justify-center text-white">
+              <FileText size={20} />
+            </div>
+            <p className="text-sm mt-2">Details</p>
+          </div>
+
+        </div>
 
       </div>
 
-      <div className="flex justify-center mt-6">
+      {/* CARD */}
+      <div className="flex justify-center mt-10 pb-12">
 
-        <div className="bg-white w-[700px] p-8 rounded-2xl shadow">
+        <div className="bg-white w-[760px] rounded-3xl shadow-sm border border-gray-200 p-8">
 
-          <h2 className="text-xl font-semibold mb-2">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Additional Details
-          </h2>
+          </h1>
 
-          {uploadedImage && (
-            <img
-              src={uploadedImage}
-              alt="Uploaded"
-              className="w-full h-[250px] object-cover rounded-xl mb-6"
+          <p className="text-gray-500 mb-8">
+            Add any additional information (optional)
+          </p>
+
+          {/* TITLE */}
+          <div className="mb-6">
+
+            <label className="block mb-2 text-sm font-medium text-gray-700">
+              Title
+            </label>
+
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-4 outline-none focus:ring-2 focus:ring-green-500"
             />
-          )}
 
-          <input
-            defaultValue={`${formattedIssue} issue`}
-            className="w-full border p-3 rounded-lg mb-4"
-          />
+          </div>
 
-          <textarea
-            placeholder="Example: Garbage dumped near school entrance..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full border p-3 rounded-lg h-[120px] mb-6"
-          />
+          {/* DESCRIPTION */}
+          <div className="mb-8">
 
-          <div className="bg-gray-50 border rounded-xl p-5 mb-6">
+            <label className="block mb-2 text-sm font-medium text-gray-700">
+              Description
+            </label>
 
-            <h3 className="font-semibold mb-4">
+            <textarea
+              placeholder="Provide more details about the issue..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-4 h-[130px] resize-none outline-none focus:ring-2 focus:ring-green-500"
+            />
+
+          </div>
+
+          {/* SUMMARY */}
+          <div className="bg-[#f8fafc] border border-gray-200 rounded-2xl p-6 mb-8">
+
+            <h3 className="font-semibold text-lg mb-6">
               Report Summary
             </h3>
 
-            <div className="flex justify-between mb-2">
-              <span>Issue</span>
-              <span>{formattedIssue}</span>
+            <div className="grid grid-cols-2 gap-6 mb-6">
+
+              <div>
+                <p className="text-sm text-gray-500 mb-1">
+                  Issue Type
+                </p>
+
+                <p className="font-semibold">
+                  {formattedIssue}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-500 mb-1">
+                  AI Confidence
+                </p>
+
+                <p className="font-semibold">
+                  {confidence}%
+                </p>
+              </div>
+
             </div>
 
-            <div className="flex justify-between mb-2">
-              <span>Confidence</span>
-              <span>{confidence}%</span>
-            </div>
+            <div className="mb-5">
 
-            <div className="flex justify-between mb-3">
-
-              <span>Smart Priority</span>
+              <p className="text-sm text-gray-500 mb-2">
+                Smart Priority
+              </p>
 
               <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                className={`px-4 py-1 rounded-full text-sm font-semibold ${
                   priority === "High"
                     ? "bg-red-100 text-red-600"
                     : priority === "Medium"
-                    ? "bg-yellow-100 text-yellow-600"
+                    ? "bg-yellow-100 text-yellow-700"
                     : "bg-green-100 text-green-600"
                 }`}
               >
@@ -193,27 +263,37 @@ function Details() {
 
             </div>
 
-            <p className="text-sm text-gray-500 mb-1">
-              Location
-            </p>
+            <div>
 
-            <p className="text-sm leading-relaxed">
-              {location}
-            </p>
+              <p className="text-sm text-gray-500 mb-2">
+                Location
+              </p>
+
+              <p className="leading-relaxed text-gray-700">
+                {location}
+              </p>
+
+            </div>
 
           </div>
 
-          <div className="flex justify-between">
+          {/* BUTTONS */}
+          <div className="flex justify-between items-center border-t pt-6">
 
-            <button onClick={() => navigate(-1)}>
-              ← Back
+            <button
+              onClick={() => navigate(-1)}
+              className="border border-gray-300 px-5 py-3 rounded-xl flex items-center gap-2 hover:bg-gray-50"
+            >
+              <ArrowLeft size={18} />
+              Back
             </button>
 
             <button
               onClick={handleSubmit}
-              className="bg-green-600 text-white px-6 py-2 rounded-lg"
+              className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl flex items-center gap-2 font-medium"
             >
-              Submit 🚀
+              <Send size={18} />
+              Submit Report
             </button>
 
           </div>

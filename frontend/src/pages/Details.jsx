@@ -89,7 +89,7 @@ function Details() {
 
   const handleSubmit = async () => {
     try {
-      await axios.post("http://127.0.0.1:5000/submit-report", {
+      await axios.post("https://urban-eye-srks.onrender.com/submit-report", {
         title,
         issue: formattedIssue,
         confidence,

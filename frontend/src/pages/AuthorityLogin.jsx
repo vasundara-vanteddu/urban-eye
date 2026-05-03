@@ -15,7 +15,7 @@ function AuthorityLogin() {
     }
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/authority-login", {
+      const response = await fetch("https://urban-eye-srks.onrender.com/authority-login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

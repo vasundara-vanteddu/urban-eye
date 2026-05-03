@@ -10,7 +10,7 @@ function ForgotPassword() {
 
   // STEP 1 → SEND EMAIL
   const handleSendEmail = async () => {
-    const res = await fetch("http://127.0.0.1:5000/send-reset-email", {
+    const res = await fetch("https://urban-eye-srks.onrender.com/send-reset-email", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -28,7 +28,7 @@ function ForgotPassword() {
 
   // STEP 2 → RESET PASSWORD
   const handleResetPassword = async () => {
-    const res = await fetch("http://127.0.0.1:5000/reset-password", {
+    const res = await fetch("https://urban-eye-srks.onrender.com/reset-password", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

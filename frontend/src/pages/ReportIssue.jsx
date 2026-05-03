@@ -121,7 +121,7 @@ function ReportIssue() {
 
     try {
       const res = await axios.post(
-        "http://127.0.0.1:5000/predict",
+        "https://urban-eye-srks.onrender.com/predict",
         formData
       );
 

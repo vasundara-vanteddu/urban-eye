@@ -11,17 +11,37 @@ from tensorflow.keras.applications.efficientnet import preprocess_input
 app = Flask(__name__)
 CORS(app)
 
-# ---------------- LOAD AI MODEL ----------------
-model_xgb = joblib.load("civic_xgb_model.pkl")
-label_map = joblib.load("labels.pkl")
+# ---------------- LAZY LOAD VARIABLES ----------------
+model_xgb = None
+label_map = None
+reverse_label_map = None
+feature_extractor = None
 
-reverse_label_map = {v: k for k, v in label_map.items()}
 
-feature_extractor = EfficientNetB0(
-    weights='imagenet',
-    include_top=False,
-    pooling='avg'
-)
+# ---------------- LOAD MODELS ONLY WHEN NEEDED ----------------
+def load_models():
+    global model_xgb
+    global label_map
+    global reverse_label_map
+    global feature_extractor
+
+    if model_xgb is None:
+
+        print("Loading AI Models...")
+
+        model_xgb = joblib.load("civic_xgb_model.pkl")
+        label_map = joblib.load("labels.pkl")
+
+        reverse_label_map = {v: k for k, v in label_map.items()}
+
+        feature_extractor = EfficientNetB0(
+            weights='imagenet',
+            include_top=False,
+            pooling='avg'
+        )
+
+        print("Models Loaded Successfully")
+
 
 # ---------------- HOME ROUTE ----------------
 @app.route("/")
@@ -114,6 +134,9 @@ def send_otp():
 @app.route("/predict", methods=["POST"])
 def predict():
 
+    # LOAD MODELS ONLY WHEN REQUEST COMES
+    load_models()
+
     if "file" not in request.files:
         return jsonify({
             "error": "No file uploaded"
@@ -127,6 +150,7 @@ def predict():
         }), 400
 
     try:
+
         # READ IMAGE
         file_bytes = np.frombuffer(file.read(), np.uint8)
         img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
@@ -161,6 +185,7 @@ def predict():
         })
 
     except Exception as e:
+
         print("Prediction Error:", str(e))
 
         return jsonify({

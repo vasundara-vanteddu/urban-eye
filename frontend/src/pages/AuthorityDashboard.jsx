@@ -1,353 +1,322 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Bell,
-  Search,
-  RefreshCw,
-  BarChart3,
-  Settings
-} from "lucide-react";
 import ComplaintModal from "../components/ComplaintModal";
+
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip,
+  PieChart, Pie,
+  LineChart, Line
+} from "recharts";
 
 function AuthorityDashboard() {
   const navigate = useNavigate();
 
-  const authorityDepartment = localStorage.getItem("authorityDepartment");
-
+  const [reports, setReports] = useState([]);
+  const [selectedReport, setSelectedReport] = useState(null);
   const [activeTab, setActiveTab] = useState("complaints");
-  const [statusFilter, setStatusFilter] = useState("All Status");
-  const [selectedComplaint, setSelectedComplaint] = useState(null);
 
-  const departmentMapping = {
-    "Road Department": ["Pothole", "Road Damage"],
-    "Drainage Department": ["Drainage Problem", "Water Leak"],
-    "Electricity Department": ["Streetlight Issue", "Traffic Signal"],
-    "Sanitation Department": [
-      "Garbage Collection",
-      "Garbage",
-      "Waste",
-      "Trash"
-    ]
+  const department = localStorage.getItem("authorityDepartment");
+
+  useEffect(() => {
+    loadReports();
+  }, []);
+
+  const loadReports = () => {
+    const allReports =
+      JSON.parse(localStorage.getItem("allReports")) || {};
+
+    let merged = [];
+
+    Object.values(allReports).forEach((userReports) => {
+      merged = [...merged, ...userReports];
+    });
+
+    const filtered = merged.filter((r) => {
+      const type = r.issueType?.toLowerCase() || "";
+
+      if (department === "Road Department") {
+        return type.includes("pothole") || type.includes("road");
+      }
+      if (department === "Sanitation Department") {
+        return type.includes("garbage") || type.includes("waste");
+      }
+      if (department === "Drainage Department") {
+        return type.includes("drain");
+      }
+      return true;
+    });
+
+    setReports(filtered.reverse());
   };
 
-  const allReports =
-    JSON.parse(localStorage.getItem("citizenReports")) || [];
+  const handleLogout = () => {
+    localStorage.removeItem("authorityDepartment");
+    localStorage.removeItem("authorityEmail");
+    navigate("/authority-login");
+  };
 
-  const filteredReports = allReports.filter((report) => {
-    const allowedIssues =
-      departmentMapping[authorityDepartment] || [];
+  // ================= ANALYTICS =================
 
-    return allowedIssues.some(
-      (issue) =>
-        report.issueType?.toLowerCase() === issue.toLowerCase()
-    );
+  const categoryMap = {};
+  reports.forEach(r => {
+    const key = r.issueType || "Other";
+    categoryMap[key] = (categoryMap[key] || 0) + 1;
   });
 
-  const displayedReports =
-    statusFilter === "All Status"
-      ? filteredReports
-      : filteredReports.filter(
-          (report) => report.status === statusFilter
-        );
+  const categoryData = Object.keys(categoryMap).map(key => ({
+    name: key,
+    value: categoryMap[key]
+  }));
 
-  const resolvedCount = filteredReports.filter(
-    (r) => r.status === "Resolved"
-  ).length;
+  const statusMap = {
+    Submitted: 0,
+    "Under Review": 0,
+    "In Progress": 0,
+    Resolved: 0
+  };
 
-  const progressPercent =
-    filteredReports.length === 0
-      ? 0
-      : Math.round((resolvedCount / filteredReports.length) * 100);
+  reports.forEach(r => {
+    if (statusMap[r.status] !== undefined) {
+      statusMap[r.status]++;
+    }
+  });
+
+  const statusData = Object.keys(statusMap).map(key => ({
+    name: key,
+    value: statusMap[key]
+  }));
+
+  const monthMap = {};
+  reports.forEach(r => {
+    const date = new Date(r.createdAt);
+    const month = date.toLocaleString("default", { month: "short" });
+
+    monthMap[month] = (monthMap[month] || 0) + 1;
+  });
+
+  const monthlyData = Object.keys(monthMap).map(key => ({
+    name: key,
+    value: monthMap[key]
+  }));
+
+  const resolved = reports.filter(r => r.status === "Resolved").length;
+  const resolutionRate =
+    reports.length > 0
+      ? Math.round((resolved / reports.length) * 100)
+      : 0;
+
+  // ============================================
 
   return (
-    <div className="min-h-screen bg-[#f6f7fb]">
+    <div className="min-h-screen bg-[#f4f6f8]">
 
-      {/* HEADER */}
-      <div className="bg-white border-b px-10 py-5 flex justify-between items-center">
+      {/* NAVBAR */}
+      <div className="flex justify-between items-center px-10 py-5 bg-white border-b">
 
-        <div className="flex items-center gap-3">
-          <div className="bg-[#0B1736] text-white rounded-xl w-10 h-10 flex items-center justify-center font-bold">
-            C
+        <div className="flex items-center gap-2">
+          <div className="w-9 h-9 bg-black text-white rounded-lg flex items-center justify-center">
+            📍
           </div>
-
-          <div>
-            <h1 className="font-bold text-xl text-[#0B1736]">
-              CivicAI
-            </h1>
-            <p className="text-xs text-gray-400">
-              Authority
-            </p>
-          </div>
+          <h1 className="font-semibold text-lg">CivicAI</h1>
+          <span className="text-sm text-gray-400">Authority</span>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-5">
+          <span className="text-sm text-gray-500">
+            {localStorage.getItem("authorityEmail")}
+          </span>
 
           <button
-            onClick={() => navigate("/authority-analytics")}
-            className="bg-black text-white px-5 py-2 rounded-xl hover:opacity-90"
+            onClick={handleLogout}
+            className="bg-black text-white px-4 py-2 rounded-lg text-sm"
           >
-            Analytics
+            Logout
           </button>
-
-          <button
-            onClick={() => navigate("/authority-settings")}
-            className="border px-5 py-2 rounded-xl hover:bg-gray-50 flex items-center gap-2"
-          >
-            <Settings size={18} />
-            Settings
-          </button>
-
-          <Bell className="text-gray-500" size={20} />
-
-          <div className="relative group cursor-pointer">
-
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gray-200"></div>
-
-              <span className="text-sm font-medium">
-                Authority User
-              </span>
-            </div>
-
-            {/* DROPDOWN */}
-            <div className="absolute right-0 top-14 w-[240px] bg-white rounded-2xl shadow-xl border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-
-              <div className="p-4 border-b">
-                <h3 className="font-semibold">
-                  Authority User
-                </h3>
-
-                <p className="text-sm text-gray-400">
-                  authority@dept.gov
-                </p>
-              </div>
-
-              <button
-                onClick={() => navigate("/authority-settings")}
-                className="w-full text-left px-4 py-4 hover:bg-gray-50 border-b"
-              >
-                Account Settings
-              </button>
-
-              <button
-                onClick={() => {
-                  localStorage.removeItem("authorityDepartment");
-                  navigate("/authority-login");
-                }}
-                className="w-full text-left px-4 py-4 text-red-500 hover:bg-red-50"
-              >
-                Log out
-              </button>
-
-            </div>
-
-          </div>
-
         </div>
 
       </div>
 
-      <div className="px-10 py-8">
+      <div className="p-10">
 
-        {/* TITLE */}
-        <div className="mb-8">
-          <h1 className="text-5xl font-bold text-[#0B1736] mb-2">
-            Authority Dashboard
-          </h1>
+        <h1 className="text-3xl font-bold mb-2">
+          Authority Dashboard
+        </h1>
 
-          <p className="text-gray-500 text-lg">
-            Logged in as {authorityDepartment}
-          </p>
-        </div>
+        <p className="text-gray-500 mb-6">
+          Manage and resolve civic complaints efficiently
+        </p>
 
         {/* STATS */}
-        <div className="grid grid-cols-5 gap-6 mb-8">
-
-          <div className="bg-white rounded-3xl p-6 border">
-            <p className="text-gray-500 text-sm">Total Complaints</p>
-            <h2 className="text-4xl font-bold mt-3">
-              {filteredReports.length}
-            </h2>
-          </div>
-
-          <div className="bg-white rounded-3xl p-6 border">
-            <p className="text-gray-500 text-sm">New</p>
-            <h2 className="text-4xl font-bold mt-3">
-              {filteredReports.filter(r => r.status === "Submitted").length}
-            </h2>
-          </div>
-
-          <div className="bg-white rounded-3xl p-6 border">
-            <p className="text-gray-500 text-sm">In Progress</p>
-            <h2 className="text-4xl font-bold mt-3">
-              {filteredReports.filter(r => r.status === "In Progress").length}
-            </h2>
-          </div>
-
-          <div className="bg-white rounded-3xl p-6 border">
-            <p className="text-gray-500 text-sm">Resolved</p>
-            <h2 className="text-4xl font-bold mt-3">
-              {resolvedCount}
-            </h2>
-          </div>
-
-          <div className="bg-white rounded-3xl p-6 border">
-            <p className="text-gray-500 text-sm">Critical</p>
-            <h2 className="text-4xl font-bold mt-3">
-              {filteredReports.filter(r => r.priority === "High").length}
-            </h2>
-          </div>
-
+        <div className="grid grid-cols-5 gap-6 mb-6">
+          <Card title="Total Complaints" value={reports.length} />
+          <Card title="New" value={reports.filter(r => r.status === "Submitted").length} />
+          <Card title="In Progress" value={reports.filter(r => r.status === "In Progress").length} />
+          <Card title="Resolved" value={reports.filter(r => r.status === "Resolved").length} />
+          <Card title="Critical" value={reports.filter(r => r.priority === "High").length} />
         </div>
 
         {/* TABS */}
         <div className="flex gap-3 mb-6">
-
           <button
             onClick={() => setActiveTab("complaints")}
-            className={`px-5 py-2 rounded-xl border ${
+            className={`px-4 py-2 rounded-lg border ${
               activeTab === "complaints"
-                ? "bg-white shadow"
-                : "bg-gray-100"
+                ? "bg-black text-white"
+                : "bg-white"
             }`}
           >
             Complaints
           </button>
 
           <button
-            onClick={() => navigate("/authority-analytics")}
-            className="px-5 py-2 rounded-xl border flex items-center gap-2 bg-gray-100 hover:bg-white"
+            onClick={() => setActiveTab("analytics")}
+            className={`px-4 py-2 rounded-lg border ${
+              activeTab === "analytics"
+                ? "bg-black text-white"
+                : "bg-white"
+            }`}
           >
-            <BarChart3 size={18} />
             Analytics
           </button>
-
         </div>
 
-        {/* COMPLAINTS */}
-        <div className="bg-white rounded-3xl border overflow-hidden">
+        {/* ================= COMPLAINTS ================= */}
+        {activeTab === "complaints" && (
+          <div className="bg-white rounded-xl p-6 shadow-sm">
 
-          <div className="p-6 flex justify-between items-center border-b">
+            <table className="w-full text-sm">
 
-            <div className="relative w-[400px]">
-              <Search
-                className="absolute left-4 top-3 text-gray-400"
-                size={18}
-              />
+              <thead>
+                <tr className="text-gray-400 text-left">
+                  <th>Image</th>
+                  <th>Issue Type</th>
+                  <th>Location</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Priority</th>
+                  <th></th>
+                </tr>
+              </thead>
 
-              <input
-                type="text"
-                placeholder="Search complaints..."
-                className="w-full border rounded-xl pl-12 pr-4 py-3 outline-none"
-              />
+              <tbody>
+                {reports.map((r) => (
+                  <tr key={r.complaintId} className="border-t">
+
+                    <td>
+                      <img
+                        src={r.image}
+                        className="w-14 h-10 rounded object-cover"
+                      />
+                    </td>
+
+                    <td>
+                      <p className="font-medium">{r.issueType}</p>
+                      <p className="text-xs text-gray-400">
+                        {r.title}
+                      </p>
+                    </td>
+
+                    <td className="text-gray-500 text-xs">
+                      {r.address?.slice(0, 30)}...
+                    </td>
+
+                    <td>
+                      {new Date(r.createdAt).toLocaleDateString()}
+                    </td>
+
+                    <td>
+                      <span className="bg-gray-200 px-2 py-1 rounded-full text-xs">
+                        {r.status}
+                      </span>
+                    </td>
+
+                    <td>
+                      <span className="bg-yellow-200 px-2 py-1 rounded-full text-xs">
+                        {r.priority}
+                      </span>
+                    </td>
+
+                    <td>
+                      <button
+                        onClick={() => setSelectedReport(r)}
+                        className="text-xl"
+                      >
+                        ⋯
+                      </button>
+                    </td>
+
+                  </tr>
+                ))}
+              </tbody>
+
+            </table>
+
+          </div>
+        )}
+
+        {/* ================= ANALYTICS ================= */}
+        {activeTab === "analytics" && (
+          <div className="grid grid-cols-2 gap-6">
+
+            <div className="bg-white p-6 rounded-xl shadow-sm">
+              <h3 className="mb-4 font-semibold">Complaints by Category</h3>
+              <BarChart width={400} height={250} data={categoryData}>
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value" />
+              </BarChart>
             </div>
 
-            <div className="flex gap-3">
+            <div className="bg-white p-6 rounded-xl shadow-sm">
+              <h3 className="mb-4 font-semibold">Status Distribution</h3>
+              <PieChart width={300} height={250}>
+                <Pie data={statusData} dataKey="value" nameKey="name" outerRadius={80} />
+                <Tooltip />
+              </PieChart>
+            </div>
 
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="border rounded-xl px-5 py-3"
-              >
-                <option>All Status</option>
-                <option>Submitted</option>
-                <option>Under Review</option>
-                <option>In Progress</option>
-                <option>Resolved</option>
-              </select>
+            <div className="bg-white p-6 rounded-xl shadow-sm">
+              <h3 className="mb-4 font-semibold">Monthly Trend</h3>
+              <LineChart width={400} height={250} data={monthlyData}>
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="value" />
+              </LineChart>
+            </div>
 
-              <button className="border rounded-xl px-5 py-3 flex gap-2 items-center">
-                <RefreshCw size={16} />
-                Refresh
-              </button>
-
+            <div className="bg-white p-6 rounded-xl shadow-sm text-center">
+              <h3 className="mb-4 font-semibold">Resolution Rate</h3>
+              <h1 className="text-4xl font-bold">{resolutionRate}%</h1>
+              <p className="text-gray-500 mt-2">
+                {resolved} of {reports.length} resolved
+              </p>
             </div>
 
           </div>
-
-          <div className="grid grid-cols-6 px-6 py-4 bg-gray-50 border-b text-gray-500 text-sm font-medium">
-            <div>Issue Type</div>
-            <div>Location</div>
-            <div>Confidence</div>
-            <div>Status</div>
-            <div>Priority</div>
-            <div>Complaint ID</div>
-          </div>
-
-          {displayedReports.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
-              No reports found
-            </div>
-          ) : (
-            displayedReports.map((report, index) => (
-              <div
-                key={index}
-                onClick={() => setSelectedComplaint(report)}
-                className="grid grid-cols-6 items-center px-6 py-5 border-b cursor-pointer hover:bg-gray-50 transition"
-              >
-
-                <div className="flex gap-3 items-center">
-
-                  <img
-                    src={
-                      report.image &&
-                      report.image !== "null" &&
-                      report.image !== ""
-                        ? report.image
-                        : "https://images.unsplash.com/photo-1593941707882-a5bac6861d75?q=80&w=400"
-                    }
-                    alt="issue"
-                    className="w-16 h-16 rounded-xl object-cover border"
-                  />
-
-                  <div>
-                    <p className="font-semibold">
-                      {report.issueType}
-                    </p>
-
-                    <p className="text-sm text-gray-400">
-                      {report.description || "No description"}
-                    </p>
-                  </div>
-
-                </div>
-
-                <div className="truncate text-sm">
-                  {report.address}
-                </div>
-
-                <div>{report.confidence}%</div>
-
-                <div>
-                  <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
-                    {report.status}
-                  </span>
-                </div>
-
-                <div>
-                  <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm">
-                    {report.priority}
-                  </span>
-                </div>
-
-                <div>{report.complaintId}</div>
-
-              </div>
-            ))
-          )}
-
-        </div>
+        )}
 
       </div>
 
       {/* MODAL */}
-      {selectedComplaint && (
+      {selectedReport && (
         <ComplaintModal
-          complaint={selectedComplaint}
-          onClose={() => setSelectedComplaint(null)}
+          report={selectedReport}
+          onClose={() => setSelectedReport(null)}
+          onSave={loadReports}
         />
       )}
 
+    </div>
+  );
+}
+
+function Card({ title, value }) {
+  return (
+    <div className="bg-white p-5 rounded-xl shadow-sm">
+      <p className="text-gray-400 text-sm">{title}</p>
+      <h2 className="text-2xl font-bold">{value}</h2>
     </div>
   );
 }

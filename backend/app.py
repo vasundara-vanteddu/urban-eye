@@ -51,6 +51,26 @@ def home():
     })
 
 
+# ---------------- WARMUP ROUTE ----------------
+@app.route("/warmup")
+def warmup():
+
+    try:
+        load_models()
+
+        return jsonify({
+            "success": True,
+            "message": "Models warmed up"
+        })
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
 # ---------------- AUTHORITY LOGIN ----------------
 @app.route("/authority-login", methods=["POST", "GET", "OPTIONS"])
 def authority_login():
@@ -133,16 +153,21 @@ def send_otp():
 @app.route("/predict", methods=["POST"])
 def predict():
 
-    load_models()
-
-    if "file" not in request.files:
-        return jsonify({
-            "error": "No file uploaded"
-        }), 400
-
-    file = request.files["file"]
-
     try:
+
+        load_models()
+
+        if "file" not in request.files:
+            return jsonify({
+                "error": "No file uploaded"
+            }), 400
+
+        file = request.files["file"]
+
+        if file.filename == "":
+            return jsonify({
+                "error": "No file selected"
+            }), 400
 
         file_bytes = np.frombuffer(file.read(), np.uint8)
         img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
@@ -152,25 +177,34 @@ def predict():
                 "error": "Invalid image"
             }), 400
 
+        # Resize
         img = cv2.resize(img, (224, 224))
 
+        # Preprocess
         img = np.expand_dims(img, axis=0)
         img = preprocess_input(img)
 
-        # FIXED
-        features = feature_extractor.predict(img, verbose=0)
+        # Feature Extraction
+        features = feature_extractor.predict(
+            img,
+            verbose=0
+        )
 
+        # Prediction
         pred = model_xgb.predict(features)[0]
 
         probs = model_xgb.predict_proba(features)[0]
 
-        confidence = round(float(np.max(probs)) * 100, 2)
+        confidence = round(
+            float(np.max(probs)) * 100,
+            2
+        )
 
         predicted_label = reverse_label_map[pred]
 
         return jsonify({
             "prediction": predicted_label.title(),
-            "confidence": confidence
+            "confidence": f"{confidence}%"
         })
 
     except Exception as e:
@@ -186,16 +220,29 @@ def predict():
 @app.route("/submit-report", methods=["POST"])
 def submit_report():
 
-    data = request.get_json()
+    try:
 
-    print("NEW REPORT:", data)
+        data = request.get_json()
 
-    return jsonify({
-        "success": True,
-        "message": "Report Submitted Successfully"
-    })
+        print("NEW REPORT:", data)
+
+        return jsonify({
+            "success": True,
+            "message": "Report Submitted Successfully"
+        })
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        debug=True
+    )

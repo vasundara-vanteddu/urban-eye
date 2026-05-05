@@ -1,263 +1,135 @@
-import { useNavigate } from "react-router-dom";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
+import { useEffect, useState } from "react";
 
 function AuthorityAnalytics() {
-  const navigate = useNavigate();
+  const [reports, setReports] = useState([]);
 
-  const allReports =
-    JSON.parse(localStorage.getItem("citizenReports")) || [];
+  const authorityDept =
+    localStorage.getItem("authorityDepartment") || "All";
 
-  const totalReports = allReports.length;
+  useEffect(() => {
+    const allReports =
+      JSON.parse(localStorage.getItem("allReports")) || {};
 
-  const resolved = allReports.filter(
-    (r) => r.status === "Resolved"
-  ).length;
+    let merged = [];
 
-  const pending = allReports.filter(
-    (r) =>
-      r.status === "Submitted" ||
-      r.status === "Under Review"
-  ).length;
+    Object.values(allReports).forEach((userReports) => {
+      merged = [...merged, ...userReports];
+    });
 
-  const progress = allReports.filter(
-    (r) => r.status === "In Progress"
-  ).length;
+    // 🔥 FILTER BY DEPARTMENT
+    const filtered = merged.filter(
+      (r) =>
+        authorityDept === "All" ||
+        r.department === authorityDept
+    );
 
-  const pieData = [
-    { name: "Resolved", value: resolved },
-    { name: "Pending", value: pending },
-    { name: "In Progress", value: progress },
-  ];
+    setReports(filtered);
+  }, []);
 
-  const COLORS = ["#22c55e", "#3b82f6", "#f59e0b"];
+  // 🔥 CATEGORY COUNT
+  const categoryCount = {};
+  reports.forEach((r) => {
+    categoryCount[r.issueType] =
+      (categoryCount[r.issueType] || 0) + 1;
+  });
 
-  const departmentCounts = {
-    Road: 0,
-    Drainage: 0,
-    Electricity: 0,
-    Sanitation: 0,
+  // 🔥 STATUS COUNT
+  const statusCount = {
+    Submitted: 0,
+    "Under Review": 0,
+    "In Progress": 0,
+    Resolved: 0,
   };
 
-  allReports.forEach((report) => {
-    if (report.department?.includes("Road")) {
-      departmentCounts.Road++;
-    }
-
-    if (report.department?.includes("Drainage")) {
-      departmentCounts.Drainage++;
-    }
-
-    if (report.department?.includes("Electricity")) {
-      departmentCounts.Electricity++;
-    }
-
-    if (report.department?.includes("Sanitation")) {
-      departmentCounts.Sanitation++;
+  reports.forEach((r) => {
+    if (statusCount[r.status] !== undefined) {
+      statusCount[r.status]++;
     }
   });
 
-  const departmentData = [
-    {
-      department: "Road",
-      complaints: departmentCounts.Road,
-    },
-    {
-      department: "Drainage",
-      complaints: departmentCounts.Drainage,
-    },
-    {
-      department: "Electricity",
-      complaints: departmentCounts.Electricity,
-    },
-    {
-      department: "Sanitation",
-      complaints: departmentCounts.Sanitation,
-    },
-  ];
+  // 🔥 MONTHLY TREND
+  const monthly = {};
+  reports.forEach((r) => {
+    const month = new Date(r.createdAt).toLocaleString("default", {
+      month: "short",
+    });
 
-  const monthlyData = [
-    { month: "Jan", complaints: 4 },
-    { month: "Feb", complaints: 8 },
-    { month: "Mar", complaints: 6 },
-    { month: "Apr", complaints: 11 },
-    { month: "May", complaints: totalReports },
-  ];
+    monthly[month] = (monthly[month] || 0) + 1;
+  });
+
+  // 🔥 RESOLUTION RATE
+  const total = reports.length;
+  const resolved = reports.filter(
+    (r) => r.status === "Resolved"
+  ).length;
+
+  const resolutionRate =
+    total === 0 ? 0 : Math.round((resolved / total) * 100);
 
   return (
-    <div className="min-h-screen bg-[#f6f7fb]">
+    <div className="p-8 bg-[#f4f6f8] min-h-screen">
 
-      {/* HEADER */}
-      <div className="bg-white border-b px-10 py-6 flex justify-between items-center">
+      <h1 className="text-3xl font-bold mb-6">
+        {authorityDept} Analytics
+      </h1>
 
-        <div>
-          <button
-            onClick={() => navigate(-1)}
-            className="text-sm mb-3"
-          >
-            ← Back
-          </button>
+      <div className="grid grid-cols-2 gap-6">
 
-          <h1 className="text-3xl font-bold">
-            Authority Analytics
-          </h1>
+        {/* CATEGORY */}
+        <div className="bg-white p-6 rounded-xl shadow">
+          <h2 className="font-semibold mb-4">
+            Complaints by Category
+          </h2>
 
-          <p className="text-gray-500">
-            Department performance insights
-          </p>
+          {Object.entries(categoryCount).map(([k, v]) => (
+            <div key={k} className="flex justify-between mb-2">
+              <span>{k}</span>
+              <span>{v}</span>
+            </div>
+          ))}
         </div>
 
-      </div>
+        {/* STATUS */}
+        <div className="bg-white p-6 rounded-xl shadow">
+          <h2 className="font-semibold mb-4">
+            Status Distribution
+          </h2>
 
-      <div className="p-8">
-
-        {/* STATS */}
-        <div className="grid grid-cols-4 gap-5 mb-8">
-
-          <div className="bg-white rounded-3xl p-6 shadow-sm">
-
-            <p className="text-sm text-gray-500">
-              Total Complaints
-            </p>
-
-            <h2 className="text-4xl font-bold mt-3">
-              {totalReports}
-            </h2>
-
-          </div>
-
-          <div className="bg-white rounded-3xl p-6 shadow-sm">
-
-            <p className="text-sm text-gray-500">
-              Resolved
-            </p>
-
-            <h2 className="text-4xl font-bold mt-3 text-green-600">
-              {resolved}
-            </h2>
-
-          </div>
-
-          <div className="bg-white rounded-3xl p-6 shadow-sm">
-
-            <p className="text-sm text-gray-500">
-              Pending
-            </p>
-
-            <h2 className="text-4xl font-bold mt-3 text-blue-600">
-              {pending}
-            </h2>
-
-          </div>
-
-          <div className="bg-white rounded-3xl p-6 shadow-sm">
-
-            <p className="text-sm text-gray-500">
-              In Progress
-            </p>
-
-            <h2 className="text-4xl font-bold mt-3 text-yellow-500">
-              {progress}
-            </h2>
-
-          </div>
-
-        </div>
-
-        {/* CHARTS */}
-        <div className="grid grid-cols-2 gap-8 mb-8">
-
-          {/* PIE */}
-          <div className="bg-white rounded-3xl p-8 shadow-sm">
-
-            <h2 className="text-xl font-semibold mb-6">
-              Complaint Status Distribution
-            </h2>
-
-            <ResponsiveContainer width="100%" height={320}>
-              <PieChart>
-
-                <Pie
-                  data={pieData}
-                  dataKey="value"
-                  outerRadius={110}
-                  label
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell
-                      key={index}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-
-                <Tooltip />
-
-              </PieChart>
-            </ResponsiveContainer>
-
-          </div>
-
-          {/* BAR */}
-          <div className="bg-white rounded-3xl p-8 shadow-sm">
-
-            <h2 className="text-xl font-semibold mb-6">
-              Department Workload
-            </h2>
-
-            <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={departmentData}>
-
-                <CartesianGrid strokeDasharray="3 3" />
-
-                <XAxis dataKey="department" />
-
-                <YAxis />
-
-                <Tooltip />
-
-                <Bar dataKey="complaints" fill="#111827" />
-
-              </BarChart>
-            </ResponsiveContainer>
-
-          </div>
-
+          {Object.entries(statusCount).map(([k, v]) => (
+            <div key={k} className="flex justify-between mb-2">
+              <span>{k}</span>
+              <span>{v}</span>
+            </div>
+          ))}
         </div>
 
         {/* MONTHLY */}
-        <div className="bg-white rounded-3xl p-8 shadow-sm">
-
-          <h2 className="text-xl font-semibold mb-6">
-            Monthly Complaint Trend
+        <div className="bg-white p-6 rounded-xl shadow">
+          <h2 className="font-semibold mb-4">
+            Monthly Trend
           </h2>
 
-          <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={monthlyData}>
+          {Object.entries(monthly).map(([k, v]) => (
+            <div key={k} className="flex justify-between mb-2">
+              <span>{k}</span>
+              <span>{v}</span>
+            </div>
+          ))}
+        </div>
 
-              <CartesianGrid strokeDasharray="3 3" />
+        {/* RESOLUTION */}
+        <div className="bg-white p-6 rounded-xl shadow text-center">
+          <h2 className="font-semibold mb-4">
+            Resolution Rate
+          </h2>
 
-              <XAxis dataKey="month" />
+          <div className="text-4xl font-bold">
+            {resolutionRate}%
+          </div>
 
-              <YAxis />
-
-              <Tooltip />
-
-              <Bar dataKey="complaints" fill="#2563eb" />
-
-            </BarChart>
-          </ResponsiveContainer>
-
+          <p className="text-gray-500 mt-2">
+            {resolved} of {total} resolved
+          </p>
         </div>
 
       </div>

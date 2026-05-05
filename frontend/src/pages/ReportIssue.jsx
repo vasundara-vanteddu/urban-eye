@@ -11,272 +11,233 @@ function ReportIssue() {
 
   const [image, setImage] = useState(null);
   const [imageFile, setImageFile] = useState(null);
-  const [cameraOn, setCameraOn] = useState(false);
-  const [streamRef, setStreamRef] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  // FILE PICKER
+  const [showCamera, setShowCamera] = useState(false);
+  const [facingMode, setFacingMode] = useState("environment"); // back camera
+
+  // 📸 OPEN GALLERY
   const openFilePicker = () => {
     fileInputRef.current.click();
   };
 
-  // FIXED FILE UPLOAD (BASE64)
+  // 📸 HANDLE GALLERY IMAGE
   const handleFileChange = (e) => {
     const file = e.target.files[0];
+    if (!file) return;
 
-    if (file) {
-      const reader = new FileReader();
+    setImageFile(file);
 
-      reader.onloadend = () => {
-        const base64Image = reader.result;
-
-        setImage(base64Image);
-        setImageFile(file);
-
-        localStorage.setItem(
-          "uploadedImage",
-          base64Image
-        );
-      };
-
-      reader.readAsDataURL(file);
-    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result;
+      setImage(base64);
+      sessionStorage.setItem("uploadedImage", base64);
+    };
+    reader.readAsDataURL(file);
   };
 
-  // OPEN CAMERA
+  // 📷 OPEN CAMERA
   const openCamera = async () => {
+    setShowCamera(true);
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+        video: { facingMode },
       });
 
-      setCameraOn(true);
-      setStreamRef(stream);
-
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      }, 200);
-
+      videoRef.current.srcObject = stream;
     } catch (err) {
-      console.error(err);
-
-      if (err.name === "NotAllowedError") {
-        alert("Please allow camera permission ⚠️");
-      } else {
-        alert("Camera not working ❌");
-      }
+      alert("Camera access denied or not available");
     }
   };
 
-  // CAPTURE PHOTO
-  const capturePhoto = () => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
+  // 🔄 SWITCH CAMERA
+  const switchCamera = async () => {
+    const newMode =
+      facingMode === "user" ? "environment" : "user";
 
-    const ctx = canvas.getContext("2d");
+    setFacingMode(newMode);
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: newMode },
+    });
+
+    videoRef.current.srcObject = stream;
+  };
+
+  // 📸 CAPTURE IMAGE
+  const captureImage = () => {
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
+    const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0);
 
-    const imageData = canvas.toDataURL("image/png");
+    const base64 = canvas.toDataURL("image/png");
 
-    setImage(imageData);
+    setImage(base64);
+    sessionStorage.setItem("uploadedImage", base64);
 
-    localStorage.setItem(
-      "uploadedImage",
-      imageData
-    );
-
-    fetch(imageData)
+    // convert to file
+    fetch(base64)
       .then((res) => res.blob())
       .then((blob) => {
         const file = new File([blob], "capture.png", {
           type: "image/png",
         });
-
         setImageFile(file);
       });
 
-    if (streamRef) {
-      streamRef.getTracks().forEach((track) =>
-        track.stop()
-      );
-    }
+    // stop camera
+    const stream = video.srcObject;
+    stream.getTracks().forEach((track) => track.stop());
 
-    setCameraOn(false);
+    setShowCamera(false);
   };
 
-  // SEND TO BACKEND
+  // 🚀 CONTINUE
   const handleContinue = async () => {
     if (!imageFile) {
-      alert("Please upload image first!");
+      alert("Please upload image first");
       return;
     }
+
+    setLoading(true);
 
     const formData = new FormData();
     formData.append("file", imageFile);
 
     try {
       const res = await axios.post(
-        "https://urban-eye-srks.onrender.com/predict",
-        formData
+        "http://127.0.0.1:5000/predict",
+        formData,
+        { timeout: 60000 }
       );
 
-      localStorage.setItem(
-        "prediction",
-        res.data.prediction
-      );
-
-      localStorage.setItem(
-        "confidence",
-        res.data.confidence
-      );
+      localStorage.setItem("prediction", res.data.prediction);
+      localStorage.setItem("confidence", res.data.confidence);
 
       navigate("/ai-detection");
-
     } catch (err) {
       console.error(err);
-      alert("Backend error ❌");
+      alert("Try again in a few seconds.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-100">
 
-      {/* TOP BAR */}
-      <div className="flex justify-between items-center px-8 py-4 bg-white shadow-sm">
-
+      {/* HEADER */}
+      <div className="border-b bg-white px-8 py-5 flex justify-between">
         <button
           onClick={() => navigate("/dashboard")}
-          className="text-gray-600 hover:text-black"
+          className="text-gray-600"
         >
           ← Back to Dashboard
         </button>
-
-        <h1 className="font-semibold">
-          CivicAI
-        </h1>
-
+        <h1 className="font-semibold">CivicAI</h1>
       </div>
 
       {/* MAIN */}
-      <div className="flex justify-center mt-8">
+      <div className="max-w-[900px] mx-auto mt-10 bg-white rounded-3xl shadow-sm p-10">
 
-        <div className="bg-white w-[600px] p-8 rounded-2xl shadow">
+        <h1 className="text-4xl font-bold mb-3">
+          Upload Issue Photo
+        </h1>
 
-          <h2 className="text-xl font-semibold mb-2">
-            Upload Issue Photo
-          </h2>
+        <p className="text-gray-500 mb-8">
+          Take or upload a clear photo of the civic issue
+        </p>
 
-          <p className="text-gray-500 mb-6 text-sm">
-            Take or upload a clear photo of the civic issue
-          </p>
+        {/* PREVIEW */}
+        <div className="border-2 border-dashed border-gray-300 rounded-2xl h-[380px] flex items-center justify-center overflow-hidden">
 
-          {/* FILE INPUT */}
-          <input
-            type="file"
-            accept="image/*"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            className="hidden"
-          />
+          {showCamera ? (
+            <video
+              ref={videoRef}
+              autoPlay
+              className="w-full h-full object-cover"
+            />
+          ) : image ? (
+            <img
+              src={image}
+              alt="uploaded"
+              className="max-h-full object-cover"
+            />
+          ) : (
+            <p className="text-gray-400">Upload image here</p>
+          )}
+        </div>
 
-          {/* CAMERA MODE */}
-          {cameraOn ? (
-            <div className="text-center mb-6">
+        <canvas ref={canvasRef} hidden />
 
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="rounded-lg w-full mb-4"
-              />
+        <input
+          type="file"
+          accept="image/*"
+          hidden
+          ref={fileInputRef}
+          onChange={handleFileChange}
+        />
+
+        {/* BUTTONS */}
+        <div className="flex gap-6 mt-8">
+
+          <button
+            onClick={openFilePicker}
+            className="flex-1 border rounded-xl py-4 text-lg"
+          >
+            Gallery
+          </button>
+
+          {!showCamera ? (
+            <button
+              onClick={openCamera}
+              className="flex-1 border rounded-xl py-4 text-lg"
+            >
+              Camera
+            </button>
+          ) : (
+            <div className="flex gap-3 flex-1">
 
               <button
-                onClick={capturePhoto}
-                className="bg-black text-white px-4 py-2 rounded-lg"
+                onClick={captureImage}
+                className="bg-black text-white px-4 py-3 rounded-xl w-full"
               >
-                Capture 📸
+                Capture
               </button>
 
-              <canvas
-                ref={canvasRef}
-                className="hidden"
-              ></canvas>
+              <button
+                onClick={switchCamera}
+                className="border px-4 py-3 rounded-xl"
+              >
+                🔄
+              </button>
 
             </div>
-          ) : (
-            <>
-              {/* PREVIEW */}
-              <div
-                onClick={openFilePicker}
-                className="border-2 border-dashed border-gray-300 rounded-xl p-10 text-center mb-6 cursor-pointer hover:bg-gray-50"
-              >
-                {image ? (
-                  <img
-                    src={image}
-                    alt="preview"
-                    className="mx-auto max-h-56 rounded-lg"
-                  />
-                ) : (
-                  <>
-                    <p className="text-gray-500 mb-2">
-                      Drop your image here
-                    </p>
-
-                    <p className="text-sm text-gray-400">
-                      or click to browse from your device
-                    </p>
-                  </>
-                )}
-              </div>
-
-              {/* BUTTONS */}
-              <div className="flex gap-4 mb-6">
-
-                <button
-                  onClick={openFilePicker}
-                  className="flex-1 border py-3 rounded-lg hover:bg-gray-50"
-                >
-                  Gallery
-                </button>
-
-                <button
-                  onClick={openCamera}
-                  className="flex-1 border py-3 rounded-lg hover:bg-gray-50"
-                >
-                  Camera
-                </button>
-
-              </div>
-            </>
           )}
 
-          {/* CONTINUE */}
-          <div className="flex justify-end">
+        </div>
 
-            <button
-              onClick={handleContinue}
-              disabled={!imageFile}
-              className={`px-6 py-2 rounded-lg text-white ${
-                imageFile
-                  ? "bg-black"
-                  : "bg-gray-400 cursor-not-allowed"
-              }`}
-            >
-              Continue →
-            </button>
+        {/* CONTINUE */}
+        <div className="flex justify-end mt-10">
 
-          </div>
+          <button
+            onClick={handleContinue}
+            disabled={loading}
+            className="bg-black text-white px-10 py-4 rounded-xl text-lg disabled:opacity-50"
+          >
+            {loading ? "Analyzing..." : "Continue →"}
+          </button>
 
         </div>
 
       </div>
-
     </div>
   );
 }

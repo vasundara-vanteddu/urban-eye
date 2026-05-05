@@ -14,7 +14,7 @@ function Signup() {
       return;
     }
 
-    const res = await fetch("https://urban-eye-srks.onrender.com/signup", {
+    const res = await fetch("http://127.0.0.1:5000/signup", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

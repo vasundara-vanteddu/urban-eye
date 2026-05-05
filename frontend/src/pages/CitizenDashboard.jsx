@@ -16,27 +16,28 @@ function CitizenDashboard() {
   const email =
     localStorage.getItem("citizenEmail") || "citizen@gmail.com";
 
-  const citizenEmail = localStorage.getItem("citizenEmail");
+  // 🔥 LOAD REPORTS CORRECTLY
+  const loadReports = () => {
+    const citizenEmail = localStorage.getItem("citizenEmail");
+
+    const allReports =
+      JSON.parse(localStorage.getItem("allReports")) || {};
+
+    const reports = allReports[citizenEmail] || [];
+
+    setUserReports(reports);
+  };
 
   useEffect(() => {
-    const loadReports = () => {
-      const allReports =
-        JSON.parse(localStorage.getItem("citizenReports")) || [];
-
-      const filteredReports = allReports.filter(
-        (report) => report.citizenEmail === citizenEmail
-      );
-
-      setUserReports(filteredReports);
-    };
-
     loadReports();
 
-    const interval = setInterval(loadReports, 1500);
+    // 🔥 auto refresh when new report added
+    const interval = setInterval(loadReports, 1000);
 
     return () => clearInterval(interval);
-  }, [citizenEmail]);
+  }, []);
 
+  // 🔍 FILTER
   const filteredReports = userReports.filter((report) => {
     const matchesSearch =
       report.issueType
@@ -56,6 +57,7 @@ function CitizenDashboard() {
     return matchesSearch && matchesStatus;
   });
 
+  // 📊 STATS
   const totalReports = userReports.length;
 
   const pendingReports = userReports.filter(
@@ -78,9 +80,7 @@ function CitizenDashboard() {
       {/* TOP BAR */}
       <div className="flex justify-between items-center px-8 py-4 bg-white shadow-sm">
 
-        <h1 className="text-lg font-semibold">
-          CivicAI
-        </h1>
+        <h1 className="text-lg font-semibold">CivicAI</h1>
 
         <div className="flex items-center gap-5 relative">
 
@@ -96,24 +96,15 @@ function CitizenDashboard() {
                 <User size={18} />
               </div>
 
-              <span className="font-medium">
-                {username}
-              </span>
+              <span className="font-medium">{username}</span>
             </button>
 
             {showMenu && (
               <div className="absolute right-0 top-14 w-64 bg-white rounded-2xl shadow-xl border z-50 overflow-hidden">
 
                 <div className="p-4 border-b">
-
-                  <h3 className="font-semibold">
-                    {username}
-                  </h3>
-
-                  <p className="text-sm text-gray-500">
-                    {email}
-                  </p>
-
+                  <h3 className="font-semibold">{username}</h3>
+                  <p className="text-sm text-gray-500">{email}</p>
                 </div>
 
                 <button
@@ -125,8 +116,7 @@ function CitizenDashboard() {
 
                 <button
                   onClick={() => {
-                    localStorage.removeItem("citizenUsername");
-                    localStorage.removeItem("citizenEmail");
+                    localStorage.clear();
                     navigate("/citizen-login");
                   }}
                   className="w-full text-left px-4 py-3 text-red-500 hover:bg-red-50"
@@ -145,86 +135,56 @@ function CitizenDashboard() {
 
       {/* HEADER */}
       <div className="px-8 mt-6">
-
         <h2 className="text-3xl font-bold mb-1">
           Welcome back 👋
         </h2>
-
         <p className="text-gray-500">
           Track and manage your civic issues
         </p>
-
       </div>
 
       {/* STATS */}
       <div className="grid grid-cols-4 gap-4 px-8 mt-6">
 
         <div className="bg-white p-6 rounded-2xl shadow-sm">
-          <p className="text-sm text-gray-500">
-            Total Reports
-          </p>
-
-          <h2 className="text-3xl font-bold">
-            {totalReports}
-          </h2>
+          <p>Total Reports</p>
+          <h2 className="text-3xl font-bold">{totalReports}</h2>
         </div>
 
         <div className="bg-white p-6 rounded-2xl shadow-sm">
-          <p className="text-sm text-gray-500">
-            Pending
-          </p>
-
-          <h2 className="text-3xl font-bold">
-            {pendingReports}
-          </h2>
+          <p>Pending</p>
+          <h2 className="text-3xl font-bold">{pendingReports}</h2>
         </div>
 
         <div className="bg-white p-6 rounded-2xl shadow-sm">
-          <p className="text-sm text-gray-500">
-            In Progress
-          </p>
-
-          <h2 className="text-3xl font-bold">
-            {progressReports}
-          </h2>
+          <p>In Progress</p>
+          <h2 className="text-3xl font-bold">{progressReports}</h2>
         </div>
 
         <div className="bg-white p-6 rounded-2xl shadow-sm">
-          <p className="text-sm text-gray-500">
-            Resolved
-          </p>
-
-          <h2 className="text-3xl font-bold">
-            {resolvedReports}
-          </h2>
+          <p>Resolved</p>
+          <h2 className="text-3xl font-bold">{resolvedReports}</h2>
         </div>
 
       </div>
 
-      {/* SEARCH + FILTER */}
+      {/* SEARCH */}
       <div className="px-8 mt-8 flex gap-4">
 
         <div className="bg-white rounded-2xl px-4 py-3 flex items-center gap-3 flex-1 shadow-sm">
-
           <Search size={18} className="text-gray-400" />
-
           <input
             type="text"
             placeholder="Search complaints..."
             value={searchTerm}
-            onChange={(e) =>
-              setSearchTerm(e.target.value)
-            }
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full outline-none"
           />
-
         </div>
 
         <select
           value={statusFilter}
-          onChange={(e) =>
-            setStatusFilter(e.target.value)
-          }
+          onChange={(e) => setStatusFilter(e.target.value)}
           className="bg-white px-5 rounded-2xl shadow-sm"
         >
           <option>All</option>
@@ -240,10 +200,7 @@ function CitizenDashboard() {
       <div className="px-8 mt-8">
 
         <div className="flex justify-between items-center mb-5">
-
-          <h3 className="text-xl font-semibold">
-            Your Reports
-          </h3>
+          <h3 className="text-xl font-semibold">Your Reports</h3>
 
           <button
             onClick={() => navigate("/report")}
@@ -251,16 +208,11 @@ function CitizenDashboard() {
           >
             + Report New Issue
           </button>
-
         </div>
 
         {filteredReports.length === 0 ? (
           <div className="bg-white p-12 rounded-2xl shadow-sm text-center text-gray-500">
-
-            <p className="text-lg mb-2">
-              No matching reports found
-            </p>
-
+            <p>No reports found</p>
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-6">
@@ -269,8 +221,8 @@ function CitizenDashboard() {
               <div
                 key={index}
                 onClick={() =>
-                  navigate("/citizen-complaint", {
-                    state: { report }
+                  navigate("/track-report", {
+                    state: { report },
                   })
                 }
                 className="bg-white rounded-2xl overflow-hidden shadow-sm cursor-pointer hover:shadow-lg transition"
@@ -284,30 +236,16 @@ function CitizenDashboard() {
 
                 <div className="p-5">
 
-                  <div className="flex justify-between mb-3">
+                  <span className="text-xs bg-gray-100 px-3 py-1 rounded-full">
+                    {report.status}
+                  </span>
 
-                    <div>
-                      <p className="text-xs text-gray-400 uppercase">
-                        {report.issueType}
-                      </p>
+                  <h3 className="font-semibold mt-2">
+                    {report.title}
+                  </h3>
 
-                      <h3 className="font-semibold">
-                        {report.issueType}
-                      </h3>
-                    </div>
-
-                    <span className="text-xs bg-gray-100 px-3 py-1 rounded-full">
-                      {report.status}
-                    </span>
-
-                  </div>
-
-                  <p className="text-sm text-gray-500 mb-3">
+                  <p className="text-sm text-gray-500 mt-1">
                     {report.address}
-                  </p>
-
-                  <p className="text-xs text-gray-400">
-                    {report.complaintId}
                   </p>
 
                 </div>
